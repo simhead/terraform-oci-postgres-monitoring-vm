@@ -1,0 +1,266 @@
+title: "OCI Postgres Monitoring via VM"
+description: "This is an OCI Postgres Monitoring stack using VM"
+# stackDescription: ${Messages.solutionsHub.solutions.ociDevTools.stackDescription()}
+# informationalText: ${Messages.solutionsHub.solutions.ociDevTools.informationalText()}
+schemaVersion: 1.1.0
+version: "20200822"
+locale: "en"
+
+variableGroups:
+- title: "Basic Hidden"
+  visible: false
+  variables:
+  - compartment_ocid
+  - tenancy_ocid
+  - region
+
+- title: "OCI Infra Configuration"
+  visible: true  
+  variables:
+  - create_new_pmm_vcn
+  - existing_pmm_vcn
+  - instance_shape
+  - instance_display_name
+  - generate_ssh_key_pair
+  - ssh_public_key
+  - create_new_pg_db
+
+- title: "Using Existing Network Configuration"
+  variables:
+  - vcn_compartment_id
+  - vcn_id
+  - pg_subnet_id
+  - pg_private_subnet_id
+  visible:
+    not:
+      - create_new_pmm_vcn
+    
+- title: "Create Network Configuration"
+  variables:
+  - vcn_name
+  visible:
+    and:
+      - create_new_pmm_vcn
+
+- title: "Postgres DB Configuration"
+  variables:
+    - pg_instance_name
+    - pg_instance_count
+    - pg_username
+    - pg_password
+    - pg_version
+    - pg_instance_shape
+    - pg_instance_ocpu_count
+    - pg_instance_memory_size_in_gbs
+  visible:
+    and:
+      - create_new_pg_db
+
+- title: "PMM Shell script link"
+  variables:
+  - pmm_shell_link
+
+variables:
+  # General Configuration
+  tenancy_ocid:
+    title: Tenancy ID
+    description: The Oracle Cloud Identifier (OCID) for your tenancy
+    type: string
+    required: true
+    visible: false
+
+  region:
+    title: ${Messages.solutionsHub.genericVariables.region.title()}
+    description: ${Messages.solutionsHub.genericVariables.region.description()}
+    type: oci:identity:region:name
+    required: true
+    visible: false
+
+  compartment_ocid:
+    title: ${Messages.solutionsHub.genericVariables.compartment.title()}
+    description: ${Messages.solutionsHub.genericVariables.compartment.description()}
+    type: oci:identity:compartment:id
+    required: true
+    visibile: false
+
+  pmm_shell_link:
+    title: "PMM Shell script link"
+    description: "PMM Shell script link. e.g. https://www.percona.com/get/pmm"
+    type: string
+    default: "https://www.percona.com/get/pmm"
+    required: true
+
+  # Required
+  instance_shape:
+    title: ${Messages.solutionsHub.solutions.ociDevTools.variables.instance_shape.title()}
+    description: "Choose Shape. Default is VM.Standard.E4.Flex"
+    type: oci:core:instanceshape:name
+    default: VM.Standard.E4.Flex
+    required: true
+    dependsOn:
+      compartmentId: ${compartment_ocid}
+  
+  instance_display_name:
+    type: string
+    title: "VM name for pmm"
+    default: "pmm-vm"
+    required: true
+    pattern: "^[A-Za-z0-9_-]{3,20}$"
+
+  generate_ssh_key_pair:
+    title: ${Messages.solutionsHub.solutions.ociDevTools.variables.generate_ssh_key_pair.title()}
+    description: ${Messages.solutionsHub.solutions.ociDevTools.variables.generate_ssh_key_pair.description()}
+    type: boolean
+    default: true
+    required: true
+
+  ssh_public_key:
+    title: ${Messages.solutionsHub.solutions.ociDevTools.variables.ssh_public_key.title()}
+    description: ${Messages.solutionsHub.solutions.ociDevTools.variables.ssh_public_key.description()}
+    type: oci:core:ssh:publickey
+    required: false
+    additionalProps:
+      allowMultiple: true
+    pattern: "((^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+\/]+[=]{0,3})( [^,]*)?)(,((ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+\/]+[=]{0,3})( [^,]*)?)*$"
+    visible:
+      not:
+        - generate_ssh_key_pair
+
+  create_new_pg_db:
+    type: boolean
+    title: "Create new Postgres DB"
+
+  create_new_pmm_vcn:
+    type: boolean
+    title: "Create new VCN for PMM VM"
+    default: false
+
+### VCN variables
+  vcn_name:
+    type: string
+    title: "VCN name for pmm"
+    default: "pmm-vm"
+    required: true
+    pattern: "^[A-Za-z0-9_-]{3,20}$"
+
+  vcn_compartment_id:
+    type: oci:identity:compartment:id
+    title: "VCN Compartment"
+    description: "The compartment where you for PMM VM VCN"
+    default: compartment_ocid
+    required: true
+
+  vcn_id:
+    type: oci:core:vcn:id
+    title: Existing VCN
+    description: An existing Virtual Cloud Network (VCN) where PMM VM will be provisioned. VCN must have the same subnet used for the Postgres DB
+    dependsOn:
+      compartmentId: vcn_compartment_id 
+    required: true
+
+  pg_subnet_id:
+    type: oci:core:subnet:id
+    title: Public Subnet Id for pmm vm
+    dependsOn:
+      compartmentId: vcn_compartment_id 
+      vcnId: vcn_id
+    required: true
+  
+  pg_private_subnet_id:
+    type: oci:core:subnet:id
+    title: Private Subnet Id for Postgres DB
+    dependsOn:
+      compartmentId: vcn_compartment_id 
+      vcnId: vcn_id
+    required: true
+  # use_existing_pmm_vcn:
+
+  # use_tenancy_level_policy:
+  #   title: ${Messages.solutionsHub.solutions.ociDevTools.variables.use_tenancy_level_policy.title()}
+  #   description: ${Messages.solutionsHub.solutions.ociDevTools.variables.use_tenancy_level_policy.description()}
+  #   type: boolean
+  #   default: true
+  #   required: true
+# Pg variables
+  pg_instance_name:
+    type: string
+    title: "Postgres Instance Name"
+    default: "postgres-db"
+    required: true
+    pattern: "^[A-Za-z0-9_-]{3,20}$"
+
+  pg_instance_count:
+    type: number
+    title: "Initial PG Instances"
+    default: 1
+    required: true
+    minimum: 1
+
+  pg_username:
+    title: "PG Admin Username"
+    description: "Administrator username for PostgreSQL."
+    type: string
+    default: admin
+    required: true
+
+  pg_password:
+    title: "PG Admin Password"
+    description: "Administrator password for PostgreSQL."
+    type: password
+    required: true
+
+  pg_version:
+    type: enum
+    enum:
+    - "14"
+    - "15"
+    - "16"
+    title: "PostgreSQL Version"
+    default: 16
+
+  pg_instance_shape:
+    title: "PostgreSQL Instance Shape"
+    description: "PostgreSQL Instance Shape"
+    type: string
+    default: "PostgreSQL.VM.Standard.E5.Flex"
+
+  pg_instance_memory_size_in_gbs:
+    title: "Instance Memory in GBs"
+    description: "Instance Memory in GBs"
+    type: integer
+    default: 32
+    minimum: 16
+
+  pg_instance_ocpu_count:
+    title: "PostgreSQL Instance OCPU Count"
+    description: "PostgreSQL Instance OCPU Count"
+    type: integer
+    default: 2
+    minimum: 1
+
+outputGroups:
+  - title: ${Messages.solutionsHub.solutions.ociDevTools.outputGroups.title()}
+    outputs:
+      - compute_instance_public_ip
+      - compartment_id
+      - generated_instance_ssh_private_key
+
+outputs:
+  compute_instance_public_ip:
+    title: ${Messages.solutionsHub.solutions.ociDevTools.outputs.compute_instance_public_ip.title()}
+    displayText: ${Messages.solutionsHub.solutions.ociDevTools.outputs.compute_instance_public_ip.displayText()}
+    type: copyableString
+    visible: true
+
+  compartment_id:
+    title: ${Messages.solutionsHub.solutions.ociDevTools.outputs.compartment_id.title()}
+    displayText: ${Messages.solutionsHub.solutions.ociDevTools.outputs.compartment_id.displayText()}
+    type: string
+    visible: true
+  
+  generated_instance_ssh_private_key:
+    title: ${Messages.solutionsHub.solutions.ociDevTools.outputs.generated_instance_ssh_private_key.title()}
+    displayText: ${Messages.solutionsHub.solutions.ociDevTools.outputs.generated_instance_ssh_private_key.displayText()}
+    type: string
+    visible: true
+

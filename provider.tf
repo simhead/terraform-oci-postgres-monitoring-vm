@@ -1,0 +1,12 @@
+provider "oci" {
+  tenancy_ocid = var.tenancy_ocid
+  region       = var.region
+}
+
+provider "tls" {
+
+}
+
+terraform {
+  required_version = ">= 1.5"
+}
