@@ -30,13 +30,13 @@ module "compute" {
   common_tags              = local.common_tags
 
   vcn_id = var.create_new_pmm_vcn ? (
-    module.network.vcn_id
+    module.network.vcn.id
   ) : (
     var.vcn_id # Use input variable if network is NOT created
   )
 
   subnet_id = var.create_new_pmm_vcn ? (
-    module.network.regional_public_subnet.id
+    module.network.subnet.id
   ) : (
     var.pg_subnet_id # Use input variable for existing subnet ID
   )
