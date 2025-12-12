@@ -35,21 +35,24 @@ NOTE: manual setup is needed for running pmm-admin and to add postgresql.
 
 ### Stack Configuration
 
+Architecture:
+![Postgres Monitoring Diagram](./img/Postgres-Monitoring-DockerVM.png)
+
 Default - using existing VCN
-<TODO: add pic>
-<TODO: add pic>
+
+![existing1](./img/existing1.png)
+![existing2](./img/existing2.png)
 
 NOTE: choose DB's dedicated private zone is required
 
-<TODO: add pic>
-<TODO: add pic>
-<TODO: add pic>
-<TODO: add pic>
+![db1](./img/db1.png)
+![db2](./img/db2.png)
+![db3](./img/db3.png)
 
 ### For new VCN (Optional)
 
-<TODO: add pic>
-<TODO: add pic>
+![new1](./img/new1.png)
+![new2](./img/new2.png)
 
 Define VCN name for VM instance:
 
