@@ -19,6 +19,12 @@ module "network" {
 
 module "compute" {
   source                   = "./modules/compute"
+  
+  providers = {
+    oci      = oci
+    oci.home = oci.home
+  }
+
   region                   = var.region
   tenancy_ocid             = var.tenancy_ocid
   target_compartment_id    = var.compartment_ocid
@@ -28,6 +34,9 @@ module "compute" {
   ssh_public_key           = var.ssh_public_key
   use_tenancy_level_policy = "false"
   common_tags              = local.common_tags
+
+# Pass the existing ID here. If left out or empty, it creates a new one.
+  existing_dynamic_group_id = var.existing_dynamic_group_id
 
   vcn_id = var.create_new_pmm_vcn ? (
     module.network.vcn.id

@@ -15,6 +15,8 @@ UPDATE_SCRIPT_LOG_FILE=${USER_HOME}/${UPDATE_SCRIPT_FILE}.log
 DEVICE_PATH="/dev/sdb"
 MOUNT_POINT="/mnt/pmm-data"
 PMM_LINK="${PMM_SHELL_LINK}"
+OL_VERSION=$(grep -oP '(?<=VERSION_ID=")\d+' /etc/os-release)
+echo "Detected Oracle Linux version: $OL_VERSION"
 
 INSTALLATION_IN_PROGRESS="
     #################################################################################################

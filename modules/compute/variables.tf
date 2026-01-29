@@ -30,6 +30,12 @@ variable "pmm_shell_link" {
   default = "https://www.percona.com/get/pmm"
 }
 
+variable "existing_dynamic_group_id" {
+  description = "OCID of an existing dynamic group. If provided, a new one will not be created."
+  type        = string
+  default     = ""
+}
+
 variable "instance_shape" {
   description = "Shape of the instance"
   type        = string

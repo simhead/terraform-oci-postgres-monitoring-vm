@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    oci = {
+      source                = "oracle/oci"
+      configuration_aliases = [ oci.home ]
+    }
+  }
+}
+
 locals {
   compartment_id                  = var.target_compartment_id
   vcn_id                          = var.vcn_id
@@ -6,14 +15,16 @@ locals {
   app_name                        = "oci-dev-kit"
   display_name                    = join("-", [local.app_name, local.current_time])
   compartment_name                = data.oci_identity_compartment.this.name
-  dynamic_group_tenancy_level     = "Allow dynamic-group ${oci_identity_dynamic_group.for_instance.name} to manage all-resources in tenancy"
-  dynamic_group_compartment_level = "Allow dynamic-group ${oci_identity_dynamic_group.for_instance.name} to manage all-resources in compartment ${local.compartment_name}"
+  
   num_of_ads                      = length(data.oci_identity_availability_domains.ads.availability_domains)
   ads                             = local.num_of_ads > 1 ? flatten([
                                         for ad_shapes in data.oci_core_shapes.this : [
                                             for shape in ad_shapes.shapes : ad_shapes.availability_domain if shape.name == var.instance_shape
                                         ]
                                     ]) : [for ad in data.oci_identity_availability_domains.ads.availability_domains : ad.name]
+
+  dynamic_group_tenancy_level     = "Allow dynamic-group ${oci_identity_dynamic_group.for_instance.name} to manage all-resources in tenancy"
+  dynamic_group_compartment_level = "Allow dynamic-group ${oci_identity_dynamic_group.for_instance.name} to manage all-resources in compartment ${local.compartment_name}"
 
   # Inject the PMM shell link into the bootstrap script content
   bootstrap_script_content = templatefile("${path.module}/scripts/bootstrap_v1.sh", {
@@ -147,6 +158,9 @@ resource "tls_private_key" "ssh_keypair" {
 }
 
 resource "oci_identity_dynamic_group" "for_instance" {
+  # Add this line to target the IAD provider
+  provider = oci.home
+
   compartment_id = var.tenancy_ocid
   description    = "To Access OCI CLI"
   name           = "${local.display_name}-dynamic-group"
@@ -155,6 +169,9 @@ resource "oci_identity_dynamic_group" "for_instance" {
 }
 
 resource "oci_identity_policy" "dg_manage_all" {
+  # Add this line to target the IAD provider
+  provider = oci.home
+
   compartment_id = var.use_tenancy_level_policy ? var.tenancy_ocid : local.compartment_id
   description    = "To Access OCI CLI"
   name           = "${local.display_name}-instance-policy"
@@ -195,6 +212,7 @@ resource "oci_core_instance" "dev_tools" {
   source_details {
     source_type = "image"
     source_id   = data.oci_core_images.this.images[0].id
+    boot_volume_size_in_gbs = 50
   }
 
   metadata = {
